@@ -2,7 +2,6 @@ package com.clickio.integrationExampleAndroid
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -39,21 +38,29 @@ class MainActivity : ComponentActivity() {
         setContent {
             ClickioSDK_Integration_Example_AndroidTheme {
                 val context = LocalContext.current
-                val consentData = remember { mutableStateOf(loadConsentData(context)) }
+                val consentData = remember { mutableStateOf<Map<String, String?>>(emptyMap()) }
+                val isReady = remember { mutableStateOf(false) }
+                val isDataLoaded = remember { mutableStateOf(false) }
 
                 ClickioConsentSDK.getInstance().onReady {
-                    consentData.value = loadConsentData(context)
+                    isReady.value = true
                 }
 
                 ClickioConsentSDK.getInstance().onConsentUpdated {
                     consentData.value = loadConsentData(context)
+                    isDataLoaded.value = true
                 }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     ConsentScreen(
                         consentData = consentData.value,
                         modifier = Modifier.padding(innerPadding),
-                        onRefresh = { consentData.value = loadConsentData(context) }
+                        onRefresh = {
+                            consentData.value = loadConsentData(context)
+                            isDataLoaded.value = true
+                        },
+                        isReady = isReady.value,
+                        isDataLoaded = isDataLoaded.value
                     )
                 }
             }
@@ -65,7 +72,9 @@ class MainActivity : ComponentActivity() {
 fun ConsentScreen(
     consentData: Map<String, String?>,
     modifier: Modifier = Modifier,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    isReady: Boolean,
+    isDataLoaded: Boolean
 ) {
     Column(
         modifier = modifier
@@ -74,30 +83,57 @@ fun ConsentScreen(
     ) {
         ConsentButton(
             modifier = Modifier.align(Alignment.CenterHorizontally),
-            onRefresh = onRefresh
+            onRefresh = onRefresh,
+            isEnabled = isReady
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        LazyColumn {
-            items(consentData.entries.toList()) { (title, value) ->
-                ConsentItem(title, value.toString())
+        GetConsentDataButton(
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            onLoadConsentData = onRefresh,
+            isEnabled = isReady
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (isDataLoaded) {
+            LazyColumn {
+                items(consentData.entries.toList()) { (title, value) ->
+                    ConsentItem(title, value.toString())
+                }
             }
         }
     }
 }
 
 @Composable
-fun ConsentButton(modifier: Modifier = Modifier, onRefresh: () -> Unit) {
+fun ConsentButton(modifier: Modifier = Modifier, onRefresh: () -> Unit, isEnabled: Boolean) {
     val context = LocalContext.current
     Button(
         onClick = {
             openConsentForm(context)
             onRefresh()
         },
-        modifier = modifier
+        modifier = modifier,
+        enabled = isEnabled
     ) {
         Text("Open Consent Window")
+    }
+}
+
+@Composable
+fun GetConsentDataButton(
+    modifier: Modifier = Modifier,
+    onLoadConsentData: () -> Unit,
+    isEnabled: Boolean
+) {
+    Button(
+        onClick = { onLoadConsentData() },
+        modifier = modifier,
+        enabled = isEnabled
+    ) {
+        Text("Get Consent Data")
     }
 }
 
@@ -120,7 +156,7 @@ fun ConsentItem(title: String, value: String) {
 private fun openConsentForm(context: Context) {
     ClickioConsentSDK.getInstance().openDialog(
         context = context,
-        ClickioConsentSDK.DialogMode.RESURFACE
+        mode = ClickioConsentSDK.DialogMode.RESURFACE
     )
 }
 
