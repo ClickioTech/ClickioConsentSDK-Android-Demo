@@ -113,7 +113,6 @@ fun ConsentButton(modifier: Modifier = Modifier, onRefresh: () -> Unit, isEnable
     Button(
         onClick = {
             openConsentForm(context)
-            onRefresh()
         },
         modifier = modifier,
         enabled = isEnabled
@@ -191,6 +190,7 @@ private fun loadConsentData(context: Context): Map<String, String?> {
         "getTCString" to tcString,
         "getACString" to acString,
         "getGPPString" to gppString,
+        "getGoogleConsentMode" to googleConsentMode,
         "getConsentedTCFVendors" to consentedTCFVendors,
         "getConsentedTCFLiVendors" to consentedTCFLiVendors,
         "getConsentedTCFPurposes" to consentedTCFPurposes,
@@ -199,7 +199,6 @@ private fun loadConsentData(context: Context): Map<String, String?> {
         "getConsentedOtherVendors" to consentedOtherVendors,
         "getConsentedOtherLiVendors" to consentedOtherLiVendors,
         "getConsentedNonTcfPurposes" to consentedNonTcfPurposes,
-        "getGoogleConsentMode" to googleConsentMode
     )
 }
 
