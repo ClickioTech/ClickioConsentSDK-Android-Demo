@@ -43,6 +43,7 @@ class MainActivity : ComponentActivity() {
                 val isDataLoaded = remember { mutableStateOf(false) }
 
                 ClickioConsentSDK.getInstance().onReady {
+                    openConsentForm(context)
                     isReady.value = true
                 }
 
@@ -83,7 +84,6 @@ fun ConsentScreen(
     ) {
         ConsentButton(
             modifier = Modifier.align(Alignment.CenterHorizontally),
-            onRefresh = onRefresh,
             isEnabled = isReady
         )
 
@@ -108,7 +108,7 @@ fun ConsentScreen(
 }
 
 @Composable
-fun ConsentButton(modifier: Modifier = Modifier, onRefresh: () -> Unit, isEnabled: Boolean) {
+fun ConsentButton(modifier: Modifier = Modifier, isEnabled: Boolean) {
     val context = LocalContext.current
     Button(
         onClick = {

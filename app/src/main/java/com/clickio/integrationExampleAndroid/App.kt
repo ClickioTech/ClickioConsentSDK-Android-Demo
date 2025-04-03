@@ -8,11 +8,13 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        ClickioConsentSDK.getInstance().setLogsMode(LogsMode.VERBOSE)
-        ClickioConsentSDK.getInstance()
-            .initialize(
-                context = this,
+
+        with(ClickioConsentSDK.getInstance()) {
+            setLogsMode(LogsMode.VERBOSE)
+            initialize(
+                context = this@App,
                 config = ClickioConsentSDK.Config("241131", "en")
             )
+        }
     }
 }
