@@ -39,12 +39,10 @@ class MainActivity : ComponentActivity() {
             ClickioSDK_Integration_Example_AndroidTheme {
                 val context = LocalContext.current
                 val consentData = remember { mutableStateOf<Map<String, String?>>(emptyMap()) }
-                val isReady = remember { mutableStateOf(false) }
                 val isDataLoaded = remember { mutableStateOf(false) }
 
                 ClickioConsentSDK.getInstance().onReady {
                     openConsentForm(context)
-                    isReady.value = true
                 }
 
                 ClickioConsentSDK.getInstance().onConsentUpdated {
@@ -60,7 +58,6 @@ class MainActivity : ComponentActivity() {
                             consentData.value = loadConsentData(context)
                             isDataLoaded.value = true
                         },
-                        isReady = isReady.value,
                         isDataLoaded = isDataLoaded.value
                     )
                 }
@@ -74,7 +71,6 @@ fun ConsentScreen(
     consentData: Map<String, String?>,
     modifier: Modifier = Modifier,
     onRefresh: () -> Unit,
-    isReady: Boolean,
     isDataLoaded: Boolean
 ) {
     Column(
@@ -84,7 +80,6 @@ fun ConsentScreen(
     ) {
         ConsentButton(
             modifier = Modifier.align(Alignment.CenterHorizontally),
-            isEnabled = isReady
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -92,7 +87,6 @@ fun ConsentScreen(
         GetConsentDataButton(
             modifier = Modifier.align(Alignment.CenterHorizontally),
             onLoadConsentData = onRefresh,
-            isEnabled = isReady
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -108,14 +102,13 @@ fun ConsentScreen(
 }
 
 @Composable
-fun ConsentButton(modifier: Modifier = Modifier, isEnabled: Boolean) {
+fun ConsentButton(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     Button(
         onClick = {
             openConsentForm(context)
         },
         modifier = modifier,
-        enabled = isEnabled
     ) {
         Text("Open Consent Window")
     }
@@ -124,13 +117,11 @@ fun ConsentButton(modifier: Modifier = Modifier, isEnabled: Boolean) {
 @Composable
 fun GetConsentDataButton(
     modifier: Modifier = Modifier,
-    onLoadConsentData: () -> Unit,
-    isEnabled: Boolean
+    onLoadConsentData: () -> Unit
 ) {
     Button(
         onClick = { onLoadConsentData() },
         modifier = modifier,
-        enabled = isEnabled
     ) {
         Text("Get Consent Data")
     }
