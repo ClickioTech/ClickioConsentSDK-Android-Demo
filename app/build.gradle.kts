@@ -40,7 +40,7 @@ android {
 }
 
 dependencies {
-    implementation("com.clickio:clickioconsentsdk:1.0.0-rc3")
+    implementation("com.clickio:clickioconsentsdk:1.0.0-rc5")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
