@@ -41,10 +41,6 @@ class MainActivity : ComponentActivity() {
                 val consentData = remember { mutableStateOf<Map<String, String?>>(emptyMap()) }
                 val isDataLoaded = remember { mutableStateOf(false) }
 
-                ClickioConsentSDK.getInstance().onReady {
-                    openConsentForm(context)
-                }
-
                 ClickioConsentSDK.getInstance().onConsentUpdated {
                     consentData.value = loadConsentData(context)
                     isDataLoaded.value = true
