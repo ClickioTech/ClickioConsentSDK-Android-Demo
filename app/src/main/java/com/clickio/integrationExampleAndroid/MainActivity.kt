@@ -25,9 +25,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.clickio.clickioconsentsdk.ClickioConsentSDK
 import com.clickio.clickioconsentsdk.ExportData
 import com.clickio.integrationExampleAndroid.ui.theme.ClickioSDK_Integration_Example_AndroidTheme
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.MobileAds
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -35,6 +43,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        val backgroundScope = CoroutineScope(Dispatchers.IO)
+        backgroundScope.launch {
+            // Initialize the Google Mobile Ads SDK on a background thread.
+            MobileAds.initialize(this@MainActivity) {}
+        }
         setContent {
             ClickioSDK_Integration_Example_AndroidTheme {
                 val context = LocalContext.current
@@ -74,6 +87,10 @@ fun ConsentScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        AdBanner(modifier = Modifier.align(Alignment.CenterHorizontally))
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
         ConsentButton(
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
@@ -186,6 +203,21 @@ private fun loadConsentData(context: Context): Map<String, String?> {
         "getConsentedOtherVendors" to consentedOtherVendors,
         "getConsentedOtherLiVendors" to consentedOtherLiVendors,
         "getConsentedNonTcfPurposes" to consentedNonTcfPurposes,
+    )
+}
+
+@Composable
+fun AdBanner(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    AndroidView(
+        modifier = modifier.fillMaxWidth(),
+        factory = { context ->
+            AdView(context).apply {
+                setAdSize(AdSize.LARGE_BANNER)
+                adUnitId = "ca-app-pub-3940256099942544/6300978111" // Test ad unit ID
+                loadAd(AdRequest.Builder().build())
+            }
+        }
     )
 }
 
