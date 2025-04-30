@@ -15,9 +15,6 @@ class App : Application() {
                 context = this@App,
                 config = ClickioConsentSDK.Config("240920", "en")
             )
-            onReady {
-                ClickioConsentSDK.getInstance().openDialog(this@App)
-            }
         }
     }
 }

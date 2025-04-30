@@ -54,6 +54,11 @@ class MainActivity : ComponentActivity() {
                 val consentData = remember { mutableStateOf<Map<String, String?>>(emptyMap()) }
                 val isDataLoaded = remember { mutableStateOf(false) }
 
+                ClickioConsentSDK.getInstance().onReady {
+                    ClickioConsentSDK.getInstance().openDialog(this@MainActivity)
+                    isDataLoaded.value = ClickioConsentSDK.getInstance().checkConsentState() == ClickioConsentSDK.ConsentState.GDPR_DECISION_OBTAINED
+                }
+
                 ClickioConsentSDK.getInstance().onConsentUpdated {
                     consentData.value = loadConsentData(context)
                     isDataLoaded.value = true
@@ -87,8 +92,10 @@ fun ConsentScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        AdBanner(modifier = Modifier.align(Alignment.CenterHorizontally))
-        
+        if (isDataLoaded) {
+            AdBanner(modifier = Modifier.align(Alignment.CenterHorizontally))
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
         
         ConsentButton(
