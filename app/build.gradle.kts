@@ -40,7 +40,7 @@ android {
 }
 
 dependencies {
-    implementation("com.clickio:clickioconsentsdk:1.0.0-rc5")
+    implementation("com.clickio:clickioconsentsdk:1.0.0-rc9")
     implementation("com.google.android.gms:play-services-ads:24.2.0")
 
     implementation(libs.androidx.core.ktx)

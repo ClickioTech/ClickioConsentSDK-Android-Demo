@@ -2,6 +2,7 @@ package com.clickio.integrationExampleAndroid
 
 import android.content.Context
 import android.os.Bundle
+import android.preference.PreferenceManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,7 +20,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -36,6 +36,8 @@ import com.google.android.gms.ads.MobileAds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.core.content.edit
 
 class MainActivity : ComponentActivity() {
 
@@ -48,20 +50,22 @@ class MainActivity : ComponentActivity() {
             // Initialize the Google Mobile Ads SDK on a background thread.
             MobileAds.initialize(this@MainActivity) {}
         }
+
         setContent {
             ClickioSDK_Integration_Example_AndroidTheme {
                 val context = LocalContext.current
-                val consentData = remember { mutableStateOf<Map<String, String?>>(emptyMap()) }
-                val isDataLoaded = remember { mutableStateOf(false) }
+                val consentData = rememberSaveable { mutableStateOf(loadConsentData(context)) }
+                val isAdVisible = rememberSaveable { mutableStateOf(false) }
 
-                ClickioConsentSDK.getInstance().onReady {
-                    ClickioConsentSDK.getInstance().openDialog(this@MainActivity)
-                    isDataLoaded.value = ClickioConsentSDK.getInstance().checkConsentState() == ClickioConsentSDK.ConsentState.GDPR_DECISION_OBTAINED
-                }
-
-                ClickioConsentSDK.getInstance().onConsentUpdated {
-                    consentData.value = loadConsentData(context)
-                    isDataLoaded.value = true
+                with(ClickioConsentSDK.getInstance()) {
+                    onReady {
+                        ClickioConsentSDK.getInstance().openDialog(this@MainActivity)
+                        isAdVisible.value = checkConsentState() != ClickioConsentSDK.ConsentState.GDPR_NO_DECISION
+                    }
+                    onConsentUpdated {
+                        consentData.value = loadConsentData(context)
+                        isAdVisible.value = checkConsentState() != ClickioConsentSDK.ConsentState.GDPR_NO_DECISION
+                    }
                 }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -70,9 +74,8 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(innerPadding),
                         onRefresh = {
                             consentData.value = loadConsentData(context)
-                            isDataLoaded.value = true
                         },
-                        isDataLoaded = isDataLoaded.value
+                        isAdVisible = isAdVisible.value
                     )
                 }
             }
@@ -85,39 +88,50 @@ fun ConsentScreen(
     consentData: Map<String, String?>,
     modifier: Modifier = Modifier,
     onRefresh: () -> Unit,
-    isDataLoaded: Boolean
+    isAdVisible: Boolean
 ) {
+    val context = LocalContext.current
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        if (isDataLoaded) {
+        if (isAdVisible) {
             AdBanner(modifier = Modifier.align(Alignment.CenterHorizontally))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         ConsentButton(
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         GetConsentDataButton(
             modifier = Modifier.align(Alignment.CenterHorizontally),
             onLoadConsentData = onRefresh,
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        if (isDataLoaded) {
-            LazyColumn {
-                items(consentData.entries.toList()) { (title, value) ->
-                    ConsentItem(title, value.toString())
-                }
+        Button(
+            onClick = {
+                clearDefaultPreferences(context)
+                onRefresh()
+            },
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        ) {
+            Text("Clear Data")
+        }
+
+        LazyColumn {
+            items(consentData.entries.toList()) { (title, value) ->
+                ConsentItem(title, value.toString())
             }
         }
+
     }
 }
 
@@ -130,7 +144,7 @@ fun ConsentButton(modifier: Modifier = Modifier) {
         },
         modifier = modifier,
     ) {
-        Text("Open Consent Window")
+        Text("Open Consent Window in Resurface mode")
     }
 }
 
@@ -143,7 +157,7 @@ fun GetConsentDataButton(
         onClick = { onLoadConsentData() },
         modifier = modifier,
     ) {
-        Text("Get Consent Data")
+        Text("Reload Consent Data from SharedPreferences")
     }
 }
 
@@ -228,3 +242,8 @@ fun AdBanner(modifier: Modifier = Modifier) {
     )
 }
 
+
+fun clearDefaultPreferences(context: Context) {
+    val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+    prefs.edit { clear() }
+}

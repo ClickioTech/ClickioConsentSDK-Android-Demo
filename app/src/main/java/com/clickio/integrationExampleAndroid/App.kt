@@ -13,7 +13,7 @@ class App : Application() {
             setLogsMode(LogsMode.VERBOSE)
             initialize(
                 context = this@App,
-                config = ClickioConsentSDK.Config("240920", "en")
+                config = ClickioConsentSDK.Config("241131", "en")
             )
         }
     }
