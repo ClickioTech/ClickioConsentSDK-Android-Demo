@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -57,14 +58,22 @@ class MainActivity : ComponentActivity() {
                 val consentData = rememberSaveable { mutableStateOf(loadConsentData(context)) }
                 val isAdVisible = rememberSaveable { mutableStateOf(false) }
 
+                fun showAds(){
+                    isAdVisible.value = true
+                }
+
                 with(ClickioConsentSDK.getInstance()) {
                     onReady {
                         ClickioConsentSDK.getInstance().openDialog(this@MainActivity)
-                        isAdVisible.value = checkConsentState() != ClickioConsentSDK.ConsentState.GDPR_NO_DECISION
+                        if (checkConsentState() != ClickioConsentSDK.ConsentState.GDPR_NO_DECISION){
+                            showAds()
+                        }
                     }
                     onConsentUpdated {
                         consentData.value = loadConsentData(context)
-                        isAdVisible.value = checkConsentState() != ClickioConsentSDK.ConsentState.GDPR_NO_DECISION
+                        if (checkConsentState() != ClickioConsentSDK.ConsentState.GDPR_NO_DECISION){
+                            showAds()
+                        }
                     }
                 }
 
@@ -231,7 +240,7 @@ private fun loadConsentData(context: Context): Map<String, String?> {
 fun AdBanner(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     AndroidView(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().height(120.dp),
         factory = { context ->
             AdView(context).apply {
                 setAdSize(AdSize.LARGE_BANNER)
