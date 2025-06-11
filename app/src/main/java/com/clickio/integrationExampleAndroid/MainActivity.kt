@@ -2,6 +2,7 @@ package com.clickio.integrationExampleAndroid
 
 import android.content.Context
 import android.os.Bundle
+import android.preference.PreferenceManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,15 +20,24 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.edit
 import com.clickio.clickioconsentsdk.ClickioConsentSDK
 import com.clickio.clickioconsentsdk.ExportData
 import com.clickio.integrationExampleAndroid.ui.theme.ClickioSDK_Integration_Example_AndroidTheme
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.MobileAds
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -35,15 +45,37 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        val backgroundScope = CoroutineScope(Dispatchers.IO)
+
         setContent {
             ClickioSDK_Integration_Example_AndroidTheme {
                 val context = LocalContext.current
-                val consentData = remember { mutableStateOf<Map<String, String?>>(emptyMap()) }
-                val isDataLoaded = remember { mutableStateOf(false) }
+                val consentData = rememberSaveable { mutableStateOf(loadConsentData(context)) }
+                val isAdInitialized = rememberSaveable { mutableStateOf(false) }
 
-                ClickioConsentSDK.getInstance().onConsentUpdated {
-                    consentData.value = loadConsentData(context)
-                    isDataLoaded.value = true
+                fun initAndShowAds() {
+                    backgroundScope.launch {
+                        if (!isAdInitialized.value) {
+                            MobileAds.initialize(this@MainActivity) {
+                                isAdInitialized.value = true
+                            }
+                        }
+                    }
+                }
+
+                with(ClickioConsentSDK.getInstance()) {
+                    onReady {
+                        ClickioConsentSDK.getInstance().openDialog(this@MainActivity)
+                        if (checkConsentState() != ClickioConsentSDK.ConsentState.GDPR_NO_DECISION) {
+                            initAndShowAds()
+                        }
+                    }
+                    onConsentUpdated {
+                        consentData.value = loadConsentData(context)
+                        if (checkConsentState() != ClickioConsentSDK.ConsentState.GDPR_NO_DECISION) {
+                            initAndShowAds()
+                        }
+                    }
                 }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -52,9 +84,8 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(innerPadding),
                         onRefresh = {
                             consentData.value = loadConsentData(context)
-                            isDataLoaded.value = true
                         },
-                        isDataLoaded = isDataLoaded.value
+                        isAdVisible = isAdInitialized.value
                     )
                 }
             }
@@ -67,33 +98,50 @@ fun ConsentScreen(
     consentData: Map<String, String?>,
     modifier: Modifier = Modifier,
     onRefresh: () -> Unit,
-    isDataLoaded: Boolean
+    isAdVisible: Boolean
 ) {
+    val context = LocalContext.current
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        if (isAdVisible) {
+            AdBanner(modifier = Modifier.align(Alignment.CenterHorizontally))
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         ConsentButton(
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         GetConsentDataButton(
             modifier = Modifier.align(Alignment.CenterHorizontally),
             onLoadConsentData = onRefresh,
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        if (isDataLoaded) {
-            LazyColumn {
-                items(consentData.entries.toList()) { (title, value) ->
-                    ConsentItem(title, value.toString())
-                }
+        Button(
+            onClick = {
+                clearDefaultPreferences(context)
+                onRefresh()
+            },
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        ) {
+            Text("Clear Data")
+        }
+
+        LazyColumn {
+            items(consentData.entries.toList()) { (title, value) ->
+                ConsentItem(title, value.toString())
             }
         }
+
     }
 }
 
@@ -106,7 +154,7 @@ fun ConsentButton(modifier: Modifier = Modifier) {
         },
         modifier = modifier,
     ) {
-        Text("Open Consent Window")
+        Text("Open Consent Window in Resurface mode")
     }
 }
 
@@ -119,7 +167,7 @@ fun GetConsentDataButton(
         onClick = { onLoadConsentData() },
         modifier = modifier,
     ) {
-        Text("Get Consent Data")
+        Text("Reload Consent Data from SharedPreferences")
     }
 }
 
@@ -189,3 +237,25 @@ private fun loadConsentData(context: Context): Map<String, String?> {
     )
 }
 
+@Composable
+fun AdBanner(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    AndroidView(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(120.dp),
+        factory = { context ->
+            AdView(context).apply {
+                setAdSize(AdSize.LARGE_BANNER)
+                adUnitId = "ca-app-pub-3940256099942544/6300978111" // Test ad unit ID
+                loadAd(AdRequest.Builder().build())
+            }
+        }
+    )
+}
+
+
+fun clearDefaultPreferences(context: Context) {
+    val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+    prefs.edit { clear() }
+}

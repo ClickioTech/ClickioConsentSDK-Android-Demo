@@ -39,23 +39,23 @@ class App : Application() {
                 context = this@App,
                 config = ClickioConsentSDK.Config("241131", "en") // Replace "241131" with your own Site ID
             )
-            onReady {
-                ClickioConsentSDK.getInstance().openDialog(this@App)
-            }
         }
     }
 }
 ```
 
 - The `241131` in the line `config = ClickioConsentSDK.Config("241131", "en")` can be replaced with your own site identifier provided by Clickio.
-- On app launch, the SDK automatically opens the consent dialog as soon as it's ready.
+
 
 ### `MainActivity.kt`
 
-Defines a simple UI with two buttons:
+Shows Consent Dialog on SDK's readiness and ads, defines a simple UI with three buttons:
 
-- **"Open Consent Window"**  
+- **"Open Consent Window in Resurface mode"**  
   Opens the consent dialog in **resurface** mode, allowing the user to review or change their preferences.
 
-- **"Get Consent Data"**  
+- **"Reload Consent Data from SharedPreferences"**  
   Retrieves all stored consent data from `SharedPreferences` and displays it on screen. Useful for debugging and verifying SDK behavior.
+
+- **"Clear Data"**  
+  Clears default `SharedPreferences`
